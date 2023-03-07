@@ -12,6 +12,7 @@ const refs = {
   loadMoreBtn: document.querySelector('#load-more-btn'),
 };
 
+const gallery = new SimpleLightbox('.gallery a');
 const getImages = new FetchImages();
 const showNotification = {
   success(quantity) {
@@ -107,7 +108,6 @@ const makeMarkup = ({ hits }) => {
 };
 const renderMarkup = imgs => {
   refs.gallery.insertAdjacentHTML('beforeend', makeMarkup(imgs));
-  let gallery = new SimpleLightbox('.gallery a');
   gallery.refresh();
 };
 
