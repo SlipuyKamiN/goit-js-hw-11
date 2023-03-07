@@ -1,7 +1,10 @@
 import { FetchImages } from './fetch-Images';
 import { Notify } from 'notiflix/build/notiflix-notify-aio';
+import _throttle from 'lodash.throttle';
+import _debounce from 'lodash.debounce';
 import SimpleLightbox from 'simplelightbox';
 import 'simplelightbox/dist/simple-lightbox.min.css';
+
 const refs = {
   form: document.querySelector('#search-form'),
   gallery: document.querySelector('#gallery'),
@@ -28,6 +31,50 @@ const showNotification = {
     );
   },
 };
+const buttonStatus = {
+  Off(btn) {
+    btn.textContent = 'Please wait...';
+    btn.disabled = true;
+  },
+
+  On(btn) {
+    btn.textContent = 'Search';
+    btn.disabled = false;
+  },
+  hide(btn) {
+    btn.classList.add('is-hidden');
+  },
+  show(btn) {
+    btn.classList.remove('is-hidden');
+  },
+};
+
+const scrollPage = () => {
+  const { height: cardHeight } = document
+    .querySelector('.gallery')
+    .firstElementChild.getBoundingClientRect();
+
+  window.scrollBy({
+    top: cardHeight * 2,
+    behavior: 'smooth',
+  });
+};
+const infiniteScroll = _debounce(() => {
+  const cardSize = 250;
+
+  if (
+    window.innerHeight + window.pageYOffset + cardSize >
+    document.body.offsetHeight
+  ) {
+    if (getImages.searchParams.endOfResults) {
+      window.removeEventListener('scroll', infiniteScroll);
+      showNotification.endOfResults();
+      return;
+    }
+    loadMore();
+    scrollPage();
+  }
+}, 350);
 const makeMarkup = ({ hits }) => {
   return hits
     .map(img => {
@@ -59,19 +106,9 @@ const makeMarkup = ({ hits }) => {
     .join('');
 };
 const renderMarkup = imgs => {
-  const markup = makeMarkup(imgs);
-  refs.gallery.insertAdjacentHTML('beforeend', markup);
+  refs.gallery.insertAdjacentHTML('beforeend', makeMarkup(imgs));
   let gallery = new SimpleLightbox('.gallery a');
-};
-const scrollPage = () => {
-  const { height: cardHeight } = document
-    .querySelector('.gallery')
-    .firstElementChild.getBoundingClientRect();
-
-  window.scrollBy({
-    top: cardHeight * 2,
-    behavior: 'smooth',
-  });
+  gallery.refresh();
 };
 
 const handleSearchSubmit = event => {
@@ -84,32 +121,35 @@ const handleSearchSubmit = event => {
   }
 
   refs.gallery.innerHTML = '';
-  refs.loadMoreBtn.classList.add('is-hidden');
+  buttonStatus.Off(refs.submitBtn);
+  // buttonStatus.hide(refs.loadMoreBtn);
   getImages.setQuery(searchQuery.value);
+  getImages.setEndOfResults(false);
+  getImages.resetPage();
   getImages
     .fetch()
     .then(imgs => {
+      buttonStatus.On(refs.submitBtn);
       if (imgs.totalHits === 0) {
         showNotification.noMatchingImages();
         return;
       }
 
       showNotification.success(imgs.totalHits);
+      // buttonStatus.show(refs.loadMoreBtn);
       renderMarkup(imgs);
-      scrollPage();
-      refs.loadMoreBtn.classList.remove('is-hidden');
-      getImages.resetPage();
+      window.addEventListener('scroll', infiniteScroll);
     })
     .catch(console.log);
 };
-const handleLoadMoreBtnClick = () => {
+const loadMore = () => {
   getImages.incrementPage();
   getImages
     .fetch()
     .then(imgs => {
       if (imgs.hits.length < 40) {
-        showNotification.endOfResults();
-        refs.loadMoreBtn.classList.add('is-hidden');
+        getImages.setEndOfResults(true);
+        buttonStatus.hide(refs.loadMoreBtn);
       }
       renderMarkup(imgs);
       scrollPage();
@@ -118,4 +158,4 @@ const handleLoadMoreBtnClick = () => {
 };
 
 refs.form.addEventListener('submit', handleSearchSubmit);
-refs.loadMoreBtn.addEventListener('click', handleLoadMoreBtnClick);
+// refs.loadMoreBtn.addEventListener('click', infiniteScroll);

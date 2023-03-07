@@ -8,6 +8,7 @@ export class FetchImages {
       page: 1,
       per_page: 40,
       q: '',
+      endOfResults: false,
     };
   }
 
@@ -35,5 +36,8 @@ export class FetchImages {
   }
   getQuery() {
     return this.searchParams.q;
+  }
+  setEndOfResults(boolean) {
+    this.searchParams.endOfResults = boolean;
   }
 }
