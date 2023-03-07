@@ -1,4 +1,4 @@
-import { FetchImages } from './fetch-images';
+// import { FetchImages } from './fetch-images';
 import { Notify } from 'notiflix/build/notiflix-notify-aio';
 import _throttle from 'lodash.throttle';
 import _debounce from 'lodash.debounce';
