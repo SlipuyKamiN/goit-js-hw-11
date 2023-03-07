@@ -4,6 +4,7 @@
   flex-direction: column;
   flex-wrap: wrap;
   justify-content: space-around;
+  align-items: flex-start;
   gap: 30px;
   @media screen and (min-width: 480px) {
     flex-direction: row;

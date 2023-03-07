@@ -1,3 +1,7 @@
+import axios from 'axios';
+
+axios.defaults.baseURL = 'https://pixabay.com/api';
+
 export class FetchImages {
   constructor() {
     this.searchParams = {
@@ -12,18 +16,12 @@ export class FetchImages {
     };
   }
 
-  fetch() {
-    const { key, image_type, orientation, safesearch, page, q, per_page } =
-      this.searchParams;
-
-    return fetch(
-      `https://pixabay.com/api/?key=${key}&image_type=${image_type}&orientation${orientation}&safesearch=${safesearch}&page=${page}&per_page=${per_page}&q=${q}`
-    ).then(response => {
-      if (!response.ok) {
-        throw new Error(response.status);
-      }
-      return response.json();
+  async fetch() {
+    const response = await axios.get(`/`, {
+      params: this.searchParams,
     });
+
+    return await response.data;
   }
   incrementPage() {
     this.searchParams.page += 1;

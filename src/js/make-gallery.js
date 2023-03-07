@@ -126,9 +126,8 @@ const handleSearchSubmit = event => {
   getImages.setQuery(searchQuery.value);
   getImages.setEndOfResults(false);
   getImages.resetPage();
-  getImages
-    .fetch()
-    .then(imgs => {
+  try {
+    getImages.fetch().then(imgs => {
       buttonStatus.On(refs.submitBtn);
       if (imgs.totalHits === 0) {
         showNotification.noMatchingImages();
@@ -139,22 +138,25 @@ const handleSearchSubmit = event => {
       // buttonStatus.show(refs.loadMoreBtn);
       renderMarkup(imgs);
       window.addEventListener('scroll', infiniteScroll);
-    })
-    .catch(console.log);
+    });
+  } catch (error) {
+    console.log(error);
+  }
 };
 const loadMore = () => {
   getImages.incrementPage();
-  getImages
-    .fetch()
-    .then(imgs => {
+  try {
+    getImages.fetch().then(imgs => {
       if (imgs.hits.length < 40) {
         getImages.setEndOfResults(true);
         buttonStatus.hide(refs.loadMoreBtn);
       }
       renderMarkup(imgs);
       scrollPage();
-    })
-    .catch(console.log());
+    });
+  } catch (error) {
+    console.log(error);
+  }
 };
 
 refs.form.addEventListener('submit', handleSearchSubmit);
