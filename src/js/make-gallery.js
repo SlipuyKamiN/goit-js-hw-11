@@ -50,32 +50,6 @@ const buttonStatus = {
   },
 };
 
-const scrollPage = () => {
-  const { height: cardHeight } = document
-    .querySelector('.gallery')
-    .firstElementChild.getBoundingClientRect();
-
-  window.scrollBy({
-    top: cardHeight * 2,
-    behavior: 'smooth',
-  });
-};
-const infiniteScroll = _debounce(() => {
-  const cardSize = 250;
-
-  if (
-    window.innerHeight + window.pageYOffset + cardSize >
-    document.body.offsetHeight
-  ) {
-    if (getImages.searchParams.endOfResults) {
-      window.removeEventListener('scroll', infiniteScroll);
-      showNotification.endOfResults();
-      return;
-    }
-    loadMore();
-    scrollPage();
-  }
-}, 350);
 const makeMarkup = ({ hits }) => {
   return hits
     .map(img => {
@@ -110,12 +84,75 @@ const renderMarkup = imgs => {
   refs.gallery.insertAdjacentHTML('beforeend', makeMarkup(imgs));
   gallery.refresh();
 };
+const goSearch = async () => {
+  const imgs = await getImages.fetch();
+
+  buttonStatus.On(refs.submitBtn);
+
+  if (imgs.totalHits === 0) {
+    showNotification.noMatchingImages();
+    return;
+  }
+
+  showNotification.success(imgs.totalHits);
+  renderMarkup(imgs);
+
+  if (imgs.hits.length < 40) {
+    getImages.setEndOfResults(true);
+    showNotification.endOfResults();
+    // buttonStatus.hide(refs.loadMoreBtn);
+    return;
+  }
+
+  window.addEventListener('scroll', infiniteScroll);
+};
+const loadMore = async () => {
+  getImages.incrementPage();
+
+  try {
+    const imgs = await getImages.fetch();
+    if (imgs.hits.length < 40) {
+      getImages.setEndOfResults(true);
+      showNotification.endOfResults();
+      // buttonStatus.hide(refs.loadMoreBtn);
+    }
+
+    renderMarkup(imgs);
+  } catch (error) {
+    console.log(error);
+  }
+};
+const scrollPage = () => {
+  const { height: cardHeight } = document
+    .querySelector('.gallery')
+    .firstElementChild.getBoundingClientRect();
+
+  window.scrollBy({
+    top: cardHeight * 2,
+    behavior: 'smooth',
+  });
+};
+const infiniteScroll = _debounce(() => {
+  const cardSize = 250;
+
+  if (
+    window.innerHeight + window.pageYOffset + cardSize >
+    document.body.offsetHeight
+  ) {
+    if (getImages.searchParams.endOfResults) {
+      window.removeEventListener('scroll', infiniteScroll);
+      return;
+    }
+    loadMore();
+    scrollPage();
+  }
+}, 350);
 
 const handleSearchSubmit = event => {
   event.preventDefault();
   const { searchQuery } = event.target.elements;
 
-  if (searchQuery.value === '') {
+  if (searchQuery.value.trim() === '') {
     showNotification.noSearchQuery();
     return;
   }
@@ -123,37 +160,11 @@ const handleSearchSubmit = event => {
   refs.gallery.innerHTML = '';
   buttonStatus.Off(refs.submitBtn);
   // buttonStatus.hide(refs.loadMoreBtn);
-  getImages.setQuery(searchQuery.value);
+  getImages.setQuery(searchQuery.value.trim());
   getImages.setEndOfResults(false);
   getImages.resetPage();
   try {
-    getImages.fetch().then(imgs => {
-      buttonStatus.On(refs.submitBtn);
-      if (imgs.totalHits === 0) {
-        showNotification.noMatchingImages();
-        return;
-      }
-
-      showNotification.success(imgs.totalHits);
-      // buttonStatus.show(refs.loadMoreBtn);
-      renderMarkup(imgs);
-      window.addEventListener('scroll', infiniteScroll);
-    });
-  } catch (error) {
-    console.log(error);
-  }
-};
-const loadMore = () => {
-  getImages.incrementPage();
-  try {
-    getImages.fetch().then(imgs => {
-      if (imgs.hits.length < 40) {
-        getImages.setEndOfResults(true);
-        buttonStatus.hide(refs.loadMoreBtn);
-      }
-      renderMarkup(imgs);
-      scrollPage();
-    });
+    goSearch();
   } catch (error) {
     console.log(error);
   }
